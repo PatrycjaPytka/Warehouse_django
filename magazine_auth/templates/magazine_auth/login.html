@@ -1,0 +1,88 @@
+{% extends 'magazine_auth/layout.html' %}
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %} {% trans 'Auth' %} {% endblock title %}
+
+{% block content %}
+    <div class="row">
+        <div class="col align-self-center text-center">
+            <div class="card">
+                <div class="card-body">
+                    <ul class="nav nav-tabs justify-content-center">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="login" aria-current="page" onclick="switchAuth('login')"> {% trans 'Login' %} </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="register" onclick="switchAuth('register')"> {% trans 'Register' %} </a>
+                        </li>
+                    </ul>
+                    <form method="POST" id="loginform" action="{% url 'magazine_auth:auth' %}">
+                        {% csrf_token %}
+                        <div class="m-3 row">
+                            <label for="username" class="col-sm-2 col-form-label"> {% trans 'Username' %}: </label>
+                            <div class="col-sm-10">
+                              <input type="text" class="form-control" id="username" name="username" placeholder="username..." required>
+                            </div>
+                          </div>
+                          <div class="m-3 row">
+                            <label for="password" class="col-sm-2 col-form-label"> {% trans 'Password' %}: </label>
+                            <div class="col-sm-10">
+                              <input type="password" class="form-control" id="password" name="password" placeholder="password..." required>
+                            </div>
+                          </div>
+                        <button type="submit" class="btn btn-primary" name="login_submit" value="login"> {% trans 'Login' %} </button>
+                    </form> 
+                    <form method="POST" id="registerform" style="display:none" action="{% url 'magazine_auth:auth' %}">
+                        {% csrf_token %}
+                        <div class="m-3 row">
+                            <label for="first_name" class="col-sm-3 col-form-label text-end"> {% trans 'First name' %}: </label>
+                            <div class="col-sm-9">
+                                {{register_form.first_name|as_crispy_field}}
+                            </div>                            
+                        </div>
+                        <div class="m-3 row">
+                            <label for="last_name" class="col-sm-3 col-form-label text-end"> {% trans 'Last name' %}: </label>
+                            <div class="col-sm-9">
+                                {{register_form.last_name|as_crispy_field}}
+                            </div>                            
+                        </div>    
+                        <div class="m-3 row">
+                            <label for="username" class="col-sm-3 col-form-label text-end"> {% trans 'Username' %}: </label>
+                            <div class="col-sm-9">
+                                {{register_form.username|as_crispy_field}}
+                            </div>                            
+                        </div>           
+                        <div class="m-3 row">
+                            <label for="password" class="col-sm-3 col-form-label text-end"> {% trans 'Password' %}: </label>
+                            <div class="col-sm-9">
+                                {{register_form.password|as_crispy_field}}
+                            </div>                            
+                        </div>    
+                        <button type="submit" class="btn btn-primary" name="register_submit" value="register"> {% trans 'Register' %} </button>
+                    </form> 
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block scripts %}
+<script> 
+    function switchAuth(action) {
+        if (action == "login") {
+            $("#login").attr("class", "nav-link active");
+            $("#register").attr("class", "nav-link");
+
+            $("#loginform").attr("style", "display:''");  
+            $("#registerform").attr("style", "display:none");
+        } else {
+            $("#register").attr("class", "nav-link active");   
+            $("#login").attr("class", "nav-link");     
+
+            $("#registerform").attr("style", "display:''");  
+            $("#loginform").attr("style", "display:none");   
+        }
+    }
+</script>
+{% endblock scripts %}
