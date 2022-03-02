@@ -1,0 +1,173 @@
+{% extends 'magazine_main/layout.html' %}
+{% load i18n %}
+
+{% block title %} {% trans 'Manage Warehouse' %} {% endblock title %}
+
+{% block content %} 
+    <div class="row align-items-center">
+        <div class="col">
+            <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addItemModal"> <i class="fa-solid fa-folder-plus"></i> {% trans 'Add item' %} </button>
+        </div>
+        <div class="col">
+            <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addUserModal"> <i class="fa-solid fa-user-plus"></i> {% trans 'Add new user' %} </button>
+        </div>
+    </div>
+
+    <div class="row p-3 align-items-center">
+        <table class="datatable table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans "Name" %}</th>
+                    <th scope="col">{% trans "Amount" %}</th>
+                    <th scope="col">{% trans "Amount left" %}</th>
+                    <th scope="col"> </th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Add New User -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel"> {% trans 'Add new user' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{% url 'magazine_main:manage_warehouse' %}">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_add_user" name="action_add_user" value="addUser"/>
+                    <div class="modal-body">
+                        <div class="mb-3 row">
+                            <label for="username" class="col-sm-2 col-form-label"> {% trans 'Username' %}: </label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="text" id="username" name="username" required/>
+                            </div>  
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="password" class="col-sm-2 col-form-label"> {% trans 'Password' %}: </label>
+                            <div class="col-sm-10">
+                                <input type="password" class="form-control" id="password" name="password" required/>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin">
+                            <label class="form-check-label" for="is_admin"> Admin user </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Add' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add New Item -->
+    <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addItemModalLabel"> {% trans 'Add new user' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{% url 'magazine_main:manage_warehouse' %}">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_add_item" name="action_add_item" value="addItem"/>
+                    <div class="modal-body">
+                        <div class="mb-3 row">
+                            <label for="name" class="col-sm-2 col-form-label"> {% trans 'Name' %}: </label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="text" id="name" name="name" required/>
+                            </div>  
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="amount" class="col-sm-2 col-form-label"> {% trans 'Amount' %}: </label>
+                            <div class="col-sm-10">
+                                <input type="number" class="form-control" id="amount" name="amount" required/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Add' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Item -->
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editItemModalLabel"> {% trans 'Edit item' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_edit_item" name="action_edit_item" value="editItem"/>
+                    <div class="modal-body">
+                        <div class="mb-3 row">
+                            {% trans 'Edit item' %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Edit' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Delete Item -->
+    <div class="modal fade" id="deleteItemModal" tabindex="-1" aria-labelledby="deleteItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteItemModalLabel"> {% trans 'Delete item' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_delete_item" name="action_delete_item" value="deleteItem"/>
+                    <div class="modal-body">
+                        <div class="m-3 row">
+                            {% trans 'Are you sure you want to delete this item?' %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Delete' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>    
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        var dt_table = $('.datatable').dataTable({
+            "bFilter": true,
+            "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
+            "iDisplayLength" : 25,
+            "order": [[ 0, "desc" ]],
+            "bAutoWidth": true,
+            // "aoColumns": [
+            //                 { "bSortable": true, "bSearchable": true, "sClass": "center" },
+            //                 { "bSortable": true, "bSearchable": true, "sClass": "center" },
+            //                 ],
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{% url 'magazine_main:items_list' %}"
+        });
+    });
+</script>
+{% endblock scripts %}
