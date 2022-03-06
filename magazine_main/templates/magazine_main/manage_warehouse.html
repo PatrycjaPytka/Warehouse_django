@@ -1,5 +1,6 @@
 {% extends 'magazine_main/layout.html' %}
 {% load i18n %}
+{% load crispy_forms_tags %}
 
 {% block title %} {% trans 'Manage Warehouse' %} {% endblock title %}
 
@@ -14,12 +15,29 @@
     </div>
 
     <div class="row p-3 align-items-center">
-        <table class="datatable table table-hover">
+        <h4> {% trans 'Items' %} </h4>
+        <table class="datatable-items table table-hover">
             <thead>
                 <tr>
                     <th scope="col">{% trans "Name" %}</th>
                     <th scope="col">{% trans "Amount" %}</th>
                     <th scope="col">{% trans "Amount left" %}</th>
+                    <th scope="col"> </th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row p-3 align-items-center">
+        <h4> {% trans 'Users' %} </h4>
+        <table class="datatable-users table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans "Username" %}</th>
+                    <th scope="col">{% trans "Admin status" %}</th>
+                    <th scope="col">{% trans "Borrowed items" %}</th>
                     <th scope="col"> </th>
                 </tr>
             </thead>
@@ -108,12 +126,11 @@
                     <h5 class="modal-title" id="editItemModalLabel"> {% trans 'Edit item' %} </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="">
+                <form method="POST" id="editItemForm" action="">
                     {% csrf_token %}
                     <input class="form-control" type="hidden" id="action_edit_item" name="action_edit_item" value="editItem"/>
                     <div class="modal-body">
                         <div class="mb-3 row">
-                            {% trans 'Edit item' %}
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -133,7 +150,7 @@
                     <h5 class="modal-title" id="deleteItemModalLabel"> {% trans 'Delete item' %} </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="">
+                <form method="POST" id="deleteItemForm" action="">
                     {% csrf_token %}
                     <input class="form-control" type="hidden" id="action_delete_item" name="action_delete_item" value="deleteItem"/>
                     <div class="modal-body">
@@ -153,20 +170,56 @@
 
 {% block scripts %}
 <script>
+    $(document).on('click', ".editItemBtn", function(event) {
+        var pk = $(this).data('id')
+        console.log(pk)
+        $.ajax({
+            url: "/manage/"+pk+"/get_item/",
+            error: function(response, error) {
+                alert(error);
+            }
+        }).done(function(response) {
+            var modal = $("#editItemModal .modal-body")
+            modal.html(response);
+            $('#editItemForm').attr('action', "/manage/"+pk+"/edit_item/");
+            
+        });
+    });
+
+    $(document).on('click', ".deleteItemBtn", function(event) {
+        var pk = $(this).data('id')
+        console.log(pk)
+        $.ajax({
+            url: "/manage/"+pk+"/get_item/",
+            error: function(response, error) {
+                alert(error);
+            }
+        }).done(function(response) {
+            $('#deleteItemForm').attr('action', "/manage/"+pk+"/delete_item/");
+            
+        });
+    });
+
     $(document).ready(function() {
-        var dt_table = $('.datatable').dataTable({
+        var dt_item_table = $('.datatable-items').dataTable({
             "bFilter": true,
             "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
             "iDisplayLength" : 25,
             "order": [[ 0, "desc" ]],
             "bAutoWidth": true,
-            // "aoColumns": [
-            //                 { "bSortable": true, "bSearchable": true, "sClass": "center" },
-            //                 { "bSortable": true, "bSearchable": true, "sClass": "center" },
-            //                 ],
             "processing": true,
             "serverSide": true,
             "ajax": "{% url 'magazine_main:items_list' %}"
+        });
+        var dt_user_table = $('.datatable-users').dataTable({
+            "bFilter": true,
+            "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
+            "iDisplayLength" : 25,
+            "order": [[ 0, "desc" ]],
+            "bAutoWidth": true,
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{% url 'magazine_main:users_list' %}"
         });
     });
 </script>

@@ -19,3 +19,6 @@ class Borrowed(models.Model):
     amount = models.PositiveSmallIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'{self.name - self.amount}'
+
