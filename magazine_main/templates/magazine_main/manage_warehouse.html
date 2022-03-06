@@ -37,7 +37,7 @@
                 <tr>
                     <th scope="col">{% trans "Username" %}</th>
                     <th scope="col">{% trans "Admin status" %}</th>
-                    <th scope="col">{% trans "Borrowed items" %}</th>
+                    <th scope="col"> </th>
                     <th scope="col"> </th>
                 </tr>
             </thead>
@@ -142,6 +142,30 @@
         </div>
     </div>
 
+    <!-- Modal Edit User -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel"> {% trans 'Edit item' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="editUserForm" action="">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_edit_user" name="action_edit_user" value="editUser"/>
+                    <div class="modal-body">
+                        <div class="mb-3 row">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Edit' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Delete Item -->
     <div class="modal fade" id="deleteItemModal" tabindex="-1" aria-labelledby="deleteItemModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -156,6 +180,31 @@
                     <div class="modal-body">
                         <div class="m-3 row">
                             {% trans 'Are you sure you want to delete this item?' %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-dark"> {% trans 'Delete' %} </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>    
+
+    <!-- Modal Delete User -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteUserModalLabel"> {% trans 'Delete user' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="deleteUserForm" action="">
+                    {% csrf_token %}
+                    <input class="form-control" type="hidden" id="action_delete_user" name="action_delete_user" value="deleteUser"/>
+                    <div class="modal-body">
+                        <div class="m-3 row">
+                            {% trans 'Are you sure you want to delete this user?' %}
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -182,6 +231,22 @@
             var modal = $("#editItemModal .modal-body")
             modal.html(response);
             $('#editItemForm').attr('action', "/manage/"+pk+"/edit_item/");
+            
+        });
+    });
+
+    $(document).on('click', ".editUserBtn", function(event) {
+        var pk = $(this).data('id')
+        console.log(pk)
+        $.ajax({
+            url: "/manage/"+pk+"/get_user/",
+            error: function(response, error) {
+                alert(error);
+            }
+        }).done(function(response) {
+            var modal = $("#editUserModal .modal-body")
+            modal.html(response);
+            $('#editUserForm').attr('action', "/manage/"+pk+"/edit_user/");
             
         });
     });

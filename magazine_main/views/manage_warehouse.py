@@ -11,16 +11,14 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 
 from magazine_main.models import Item, Borrowed
-from magazine_main.forms import EditItemForm
+from magazine_main.forms import EditItemForm, EditUserForm
 
 
 class ManageWarehouseView(LoginRequiredMixin, View):
     template_name = "magazine_main/manage_warehouse.html"
-    context = {}
 
     def get(self, request):
-        self.context['edit_form'] = EditItemForm()
-        return render(request, self.template_name, self.context)
+        return render(request, self.template_name)
 
     def post(self, request):
         if 'action_add_user' in request.POST:
@@ -47,44 +45,74 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.GET_ACTIONS = {
             'get_item': self.get_item,
+            'get_user': self.get_user,
         }
 
         self.POST_ACTIONS = {
             'edit_item': self.edit_item,
+            'edit_user': self.edit_user,
             'delete_item': self.delete_item,
+            'delete_user': self.delete_user,
             }
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk, action):
-        self.item_obj = get_object_or_404(Item, pk=pk)
+        if 'item' in action:
+            self.item_obj = get_object_or_404(Item, pk=pk)
+        else:
+            self.user_obj = get_object_or_404(User, pk=pk)
         if action in self.GET_ACTIONS:
             return self.GET_ACTIONS[action](request)
         return redirect('magazine_main:manage_warehouse')
     
     def post(self, request, pk, action):
-        self.item_obj = get_object_or_404(Item, pk=pk)
+        if 'user' in action:
+            self.user_obj = get_object_or_404(User, pk=pk)
+        else:
+            self.item_obj = get_object_or_404(Item, pk=pk)
         if action in self.POST_ACTIONS:
             return self.POST_ACTIONS[action](request)
         return redirect('magazine_main:manage_warehouse')        
 
     def get_item(self, request):
-        edit_form = EditItemForm(instance=self.item_obj)
-        return HttpResponse(edit_form.as_p())
+        item_edit_form = EditItemForm(instance=self.item_obj)
+        return HttpResponse(item_edit_form.as_p())
+
+    def get_user(self, request):
+        user_edit_form = EditUserForm(instance=self.user_obj)
+        return HttpResponse(user_edit_form.as_p())
 
     def edit_item(self, request):
         form = EditItemForm(request.POST, instance=self.item_obj)
         if form.is_valid():
             form.save()
-            print(form)
             messages.success(request, _('Item successfully edited'))
-        return redirect('magazine_main:manage_warehouse')     
+        return redirect('magazine_main:manage_warehouse')    
     
+    def edit_user(self, request):
+        form = EditUserForm(request.POST, instance=self.user_obj)
+        print(form.is_valid())
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('User successfully edited'))
+        return redirect('magazine_main:manage_warehouse') 
+
     def delete_item(self, request):
         try:
             self.item_obj.delete()
             messages.success(request, _('Item successfully deleted'))
         except ProtectedError:
             messages.error(request, _(f'You cannot delete this item because some users does not returned it yet.'))
+        except Exception as e:
+            messages.error(request, _(f'Something went wrong. {e}'))
+        return redirect('magazine_main:manage_warehouse')
+
+    def delete_user(self, request):
+        try:
+            self.user_obj.delete()
+            messages.success(request, _('User successfully deleted'))
+        except ProtectedError:
+            messages.error(request, _(f'You cannot delete this user because some users does not returned it yet.'))
         except Exception as e:
             messages.error(request, _(f'Something went wrong. {e}'))
         return redirect('magazine_main:manage_warehouse')
@@ -124,19 +152,21 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
     def get_initial_queryset(self):
         return User.objects.all().order_by('id')
 
-    def render_buttons(self, id):
-        print(id)
-        buttons = f'''<button class="editItemBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="{id}"> Edit </button> 
-                      <button class="deleteItemBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUSerModal" data-id="{id}"> Delete </button>'''
+    def render_buttons(self, id, row_type):
+        if row_type == 'borrowed_list':
+            buttons = f'<button class="borrowedListBtn btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#borrowedUserModal" data-id="{id}"> Borrowed items </button>'
+        else:
+            buttons = f'''<button class="editUserBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="{id}"> Edit </button> 
+                        <button class="deleteUserBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="{id}"> Delete </button>'''
         return buttons
 
     def render_column(self, row, column):
         if column == '':
-            return self.render_buttons(row.id)
+            return self.render_buttons(row.id, row_type='actions')
         if column == 'borrowed_items':
             user = get_object_or_404(User, id=row.id)
-            print(user.borrowed_by.all().values_list('item'))
-            return list(user.borrowed_by.all().values_list('item__name', 'amount'))
+            print(user.borrowed_by.all().values_list('item__name', 'amount'))
+            return self.render_buttons(row.id, 'borrowed_list')
         return super(UsersList, self).render_column(row, column)
     
     def filter_queryset(self, qs):
