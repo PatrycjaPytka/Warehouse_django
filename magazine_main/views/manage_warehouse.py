@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.utils.translation import gettext as _
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, reverse
 from django.views.generic import View
 
 from magazine_main.models import Item, Borrowed
@@ -46,6 +46,7 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
         self.GET_ACTIONS = {
             'get_item': self.get_item,
             'get_user': self.get_user,
+            'delete_user_borrowed': self.delete_user_borrowed,
         }
 
         self.POST_ACTIONS = {
@@ -59,6 +60,8 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     def get(self, request, pk, action):
         if 'item' in action:
             self.item_obj = get_object_or_404(Item, pk=pk)
+        if 'borrowed' in action:
+            self.user_borrowed_obj = get_object_or_404(Borrowed, pk=pk)
         else:
             self.user_obj = get_object_or_404(User, pk=pk)
         if action in self.GET_ACTIONS:
@@ -68,7 +71,7 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     def post(self, request, pk, action):
         if 'user' in action:
             self.user_obj = get_object_or_404(User, pk=pk)
-        else:
+        else: 
             self.item_obj = get_object_or_404(Item, pk=pk)
         if action in self.POST_ACTIONS:
             return self.POST_ACTIONS[action](request)
@@ -112,7 +115,15 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
             self.user_obj.delete()
             messages.success(request, _('User successfully deleted'))
         except ProtectedError:
-            messages.error(request, _(f'You cannot delete this user because some users does not returned it yet.'))
+            messages.error(request, _(f'You cannot delete this user because he did not returned all borrowed items yet.'))
+        except Exception as e:
+            messages.error(request, _(f'Something went wrong. {e}'))
+        return redirect('magazine_main:manage_warehouse')
+
+    def delete_user_borrowed(self, request):
+        try:
+            self.user_borrowed_obj.delete()
+            messages.success(request, _('Borrowed item successfully deleted'))
         except Exception as e:
             messages.error(request, _(f'Something went wrong. {e}'))
         return redirect('magazine_main:manage_warehouse')
@@ -161,6 +172,11 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
         return buttons
 
     def render_column(self, row, column):
+        if column == 'is_admin':
+            if get_object_or_404(User, id=row.id).is_superuser:
+                return '<i class="fa-solid fa-circle-check"></i>'
+            else:
+                return '<i class="fa-solid fa-circle-minus"></i>'
         if column == '':
             return self.render_buttons(row.id, row_type='actions')
         if column == 'borrowed_items':
@@ -173,4 +189,28 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
         search = self.request.GET.get('search[value]', None)
         if search:
             qs = qs.filter(username__istartswith=search)
+        return qs  
+
+
+class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
+    model = Borrowed
+    columns = ['item.name', 'amount', '']
+    order_columns = ['item.name', 'amount', '']
+
+    def get_initial_queryset(self):
+        return Borrowed.objects.all()
+
+    def render_buttons(self, id):
+        url = reverse('magazine_main:manage_action', kwargs={'pk': id, 'action': 'delete_user_borrowed'})
+        return f'<a href={url} class="btn btn-outline-danger"> Delete </a>'
+
+    def render_column(self, row, column):
+        if column == '':
+            return self.render_buttons(row.id)
+        return super(BorrowedUserList, self).render_column(row, column)
+    
+    def filter_queryset(self, qs):
+        search = self.request.GET.get('search[value]', None)
+        if search:
+            qs = qs.filter(name__istartswith=search)
         return qs  
