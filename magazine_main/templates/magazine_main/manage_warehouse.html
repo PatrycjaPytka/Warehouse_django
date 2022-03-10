@@ -12,6 +12,9 @@
         <div class="col">
             <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addUserModal"> <i class="fa-solid fa-user-plus"></i> {% trans 'Add new user' %} </button>
         </div>
+        <div class="col">
+            <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#borrowItemModal"> <i class="fa-solid fa-hands-holding"></i> {% trans 'Borrow item' %} </button>
+        </div>
     </div>
 
     <div class="row p-3 align-items-center">
@@ -38,6 +41,23 @@
                     <th scope="col">{% trans "Username" %}</th>
                     <th scope="col">{% trans "Admin status" %}</th>
                     <th scope="col"> </th>
+                    <th scope="col"> </th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row p-3 align-items-center">
+        <h4> {% trans 'Borrowed items' %} </h4>
+        <table class="datatable-borrowed-items table table-hover text-center">
+            <thead>
+                <tr>
+                    <th scope="col">{% trans "Item" %}</th>
+                    <th scope="col">{% trans "Username" %}</th>
+                    <th scope="col">{% trans "Amount" %}</th>
+                    <th scope="col">{% trans "Date" %}</th>
                     <th scope="col"> </th>
                 </tr>
             </thead>
@@ -230,6 +250,7 @@
                             <tr>
                                 <th scope="col">{% trans "Name" %}</th>
                                 <th scope="col">{% trans "Amount" %}</th>
+                                <th scope="col">{% trans "Date" %}</th>
                                 <th scope="col"> </th>
                             </tr>
                         </thead>
@@ -240,6 +261,21 @@
             </div>
         </div>
     </div>    
+
+    <!-- Modal Borrow Item -->
+    <div class="modal fade" id="borrowItemModal" tabindex="-1" aria-labelledby="borrowItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="borrowItemModalLabel"> {% trans 'Borrowed items' %} </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="row p-3 align-items-center">
+                </div>
+            </div>
+        </div>
+    </div>   
+
 {% endblock content %}
 
 {% block scripts %}
@@ -303,7 +339,26 @@
         });
     });
 
+    $(document).on('click', ".borrowedListBtn", function() {
+        var user_id = $(this).data('id')
+        console.log(user_id, 'user_id')
+        var dt_item_table = $('.datatable-borrowed-user').dataTable({
+            "bFilter": true,
+            "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
+            "iDisplayLength" : 25,
+            "order": [[ 0, "desc" ]],
+            "destroy": true,
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": "{% url 'magazine_main:borrowed_items_list' %}",
+                "data": {"user_id": user_id},
+                }
+        });
+    });
+
     $(document).ready(function() {
+        
         var dt_item_table = $('.datatable-items').dataTable({
             "bFilter": true,
             "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
@@ -327,9 +382,10 @@
             "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
             "iDisplayLength" : 25,
             "order": [[ 0, "desc" ]],
+            "destroy": true,
             "processing": true,
             "serverSide": true,
-            "ajax": "{% url 'magazine_main:borrowed_user_list' %}"
+            "ajax": "{% url 'magazine_main:borrowed_items_list' %}"
         });
     });
 </script>

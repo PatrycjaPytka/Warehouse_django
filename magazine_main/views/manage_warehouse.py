@@ -165,7 +165,7 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
 
     def render_buttons(self, id, row_type):
         if row_type == 'borrowed_list':
-            buttons = f'<button class="borrowedListBtn btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#borrowedUserModal" data-id="{id}"> Borrowed items </button>'
+            buttons = f'<button class="borrowedListBtn btn btn-outline-dark" id="borrowedListBtn" data-bs-toggle="modal" data-bs-target="#borrowedUserModal" data-id="{id}"> Borrowed items </button>'
         else:
             buttons = f'''<button class="editUserBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="{id}"> Edit </button> 
                         <button class="deleteUserBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="{id}"> Delete </button>'''
@@ -194,10 +194,12 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
 
 class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     model = Borrowed
-    columns = ['item.name', 'amount', '']
-    order_columns = ['item.name', 'amount', '']
+    columns = ['item.name', 'amount', 'created_at', '']
+    order_columns = ['item.name', 'amount', 'created_at', '']
 
     def get_initial_queryset(self):
+        if 'user_id' in self.request.GET:
+            return Borrowed.objects.filter(user__id=self.request.GET['user_id'])
         return Borrowed.objects.all()
 
     def render_buttons(self, id):
@@ -205,6 +207,8 @@ class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
         return f'<a href={url} class="btn btn-outline-danger"> Delete </a>'
 
     def render_column(self, row, column):
+        if column == 'created_at':
+            return row.created_at.strftime("%d-%m-%Y")
         if column == '':
             return self.render_buttons(row.id)
         return super(BorrowedUserList, self).render_column(row, column)
@@ -212,5 +216,5 @@ class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     def filter_queryset(self, qs):
         search = self.request.GET.get('search[value]', None)
         if search:
-            qs = qs.filter(name__istartswith=search)
+            qs = qs.filter(item__name__istartswith=search)
         return qs  
