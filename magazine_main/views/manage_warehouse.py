@@ -6,19 +6,25 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from django.db.models import ProtectedError
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.shortcuts import render, redirect, reverse
 from django.views.generic import View
 
 from magazine_main.models import Item, Borrowed
-from magazine_main.forms import EditItemForm, EditUserForm
+from magazine_main.forms import EditItemForm, EditUserForm, BorrowItemForm
 
 
+@method_decorator(login_required(login_url='/auth/login/'), name='dispatch')
 class ManageWarehouseView(LoginRequiredMixin, View):
     template_name = "magazine_main/manage_warehouse.html"
+    context = {}
 
     def get(self, request):
-        return render(request, self.template_name)
+        self.context['borrow_form'] = BorrowItemForm()
+        self.context['borrowed_items'] = Borrowed.objects.all()
+        return render(request, self.template_name, self.context)
 
     def post(self, request):
         if 'action_add_user' in request.POST:
@@ -32,15 +38,26 @@ class ManageWarehouseView(LoginRequiredMixin, View):
             messages.success(request, _('User successfully created'))
         
         elif 'action_add_item' in request.POST:
-            print(request.POST)
             try:
                 Item.objects.create(name=request.POST['name'], amount=int(request.POST['amount']), amount_left=int(request.POST['amount']))
             except Exception:
                 messages.error(request, _('Something went wrong. Please try again'))
             messages.success(request, _('Item successfully created'))
+        
+        elif 'action_user_borrow_item' in request.POST:
+            form = BorrowItemForm(request.POST)
+            if form.is_valid():
+                form.save()
+                item = form.cleaned_data['item']
+                item.amount_left -= form.cleaned_data['amount']
+                item.save()
+                messages.success(request, _('Item borrowed :)'))
+            else:
+                messages.error(request, _('Something went wrong. Could not save data'))
         return redirect('magazine_main:manage_warehouse')
 
 
+@method_decorator(login_required(login_url='/auth/login/'), name='dispatch')
 class ManageWarehouseAction(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.GET_ACTIONS = {
@@ -122,6 +139,9 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
 
     def delete_user_borrowed(self, request):
         try:
+            item = self.user_borrowed_obj.item
+            item.amount_left += self.user_borrowed_obj.amount
+            item.save()
             self.user_borrowed_obj.delete()
             messages.success(request, _('Borrowed item successfully deleted'))
         except Exception as e:
@@ -129,6 +149,7 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
         return redirect('magazine_main:manage_warehouse')
 
 
+@method_decorator(login_required(login_url='/auth/login/'), name='dispatch')
 class ItemsList(LoginRequiredMixin, BaseDatatableView):
     model = Item
     columns = ['name', 'amount', 'amount_left', '']
@@ -138,7 +159,6 @@ class ItemsList(LoginRequiredMixin, BaseDatatableView):
         return Item.objects.all().order_by('created_at')
 
     def render_buttons(self, id):
-        print(id)
         buttons = f'''<button class="editItemBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editItemModal" data-id="{id}"> Edit </button> 
                       <button class="deleteItemBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="{id}"> Delete </button>'''
         return buttons
@@ -155,6 +175,7 @@ class ItemsList(LoginRequiredMixin, BaseDatatableView):
         return qs        
 
 
+@method_decorator(login_required(login_url='/auth/login/'), name='dispatch')
 class UsersList(LoginRequiredMixin, BaseDatatableView):
     model = User
     columns = ['username', 'is_admin', 'borrowed_items', '']
@@ -192,10 +213,11 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
         return qs  
 
 
+@method_decorator(login_required(login_url='/auth/login/'), name='dispatch')
 class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     model = Borrowed
-    columns = ['item.name', 'amount', 'created_at', '']
-    order_columns = ['item.name', 'amount', 'created_at', '']
+    columns = ['item.name', 'user.username', 'amount', 'created_at', '']
+    order_columns = ['item.name', 'user.username', 'amount', 'created_at', '']
 
     def get_initial_queryset(self):
         if 'user_id' in self.request.GET:

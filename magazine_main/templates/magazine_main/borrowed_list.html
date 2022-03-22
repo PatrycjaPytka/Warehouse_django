@@ -7,7 +7,9 @@
     <h4> {% trans 'Your borrowed items' %}: </h4>
     <ul>
         {% for borrowed_item in object_list %}
-            <p>{{ borrowed_item.item.name }} - {{ borrowed_item.amount }} - {{ borrowed_item.created_at }}</p>
+            {% if borrowed_item.user == request.user %}    
+                <p>{{ borrowed_item.item.name }} - {{ borrowed_item.amount }} - {{ borrowed_item.created_at }}</p>
+            {% endif %}
         {% empty %}
             <p>No borrowed items.</p>
         {% endfor %}
