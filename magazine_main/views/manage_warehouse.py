@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django_datatables_view.base_datatable_view import BaseDatatableView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -38,8 +38,8 @@ class ManageWarehouseView(LoginRequiredMixin, View):
             except Exception:
                 messages.error(request, _('Something went wrong. Please try again'))
             messages.success(request, _('Item successfully created'))
-        return redirect('magazine_main:manage_warehouse')
 
+            # TODO add action borrow
 
 class ManageWarehouseAction(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
@@ -115,7 +115,7 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
             self.user_obj.delete()
             messages.success(request, _('User successfully deleted'))
         except ProtectedError:
-            messages.error(request, _(f'You cannot delete this user because he did not returned all borrowed items yet.'))
+            messages.error(request, _(f'You cannot delete this user because he did not return all borrowed items yet.'))
         except Exception as e:
             messages.error(request, _(f'Something went wrong. {e}'))
         return redirect('magazine_main:manage_warehouse')
@@ -138,7 +138,6 @@ class ItemsList(LoginRequiredMixin, BaseDatatableView):
         return Item.objects.all().order_by('created_at')
 
     def render_buttons(self, id):
-        print(id)
         buttons = f'''<button class="editItemBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editItemModal" data-id="{id}"> Edit </button> 
                       <button class="deleteItemBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="{id}"> Delete </button>'''
         return buttons
@@ -198,7 +197,8 @@ class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     order_columns = ['item.name', 'amount', '']
 
     def get_initial_queryset(self):
-        return Borrowed.objects.all()
+        print('Here ', self.kwargs.get('pk'))
+        return Borrowed.objects.filter(user__id=self.kwargs.get('pk'))
 
     def render_buttons(self, id):
         url = reverse('magazine_main:manage_action', kwargs={'pk': id, 'action': 'delete_user_borrowed'})
@@ -212,5 +212,6 @@ class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     def filter_queryset(self, qs):
         search = self.request.GET.get('search[value]', None)
         if search:
-            qs = qs.filter(name__istartswith=search)
+            qs = qs.filter(item__name__istartswith=search)
         return qs  
+    
