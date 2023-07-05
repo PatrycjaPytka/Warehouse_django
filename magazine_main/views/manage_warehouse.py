@@ -11,35 +11,48 @@ from django.shortcuts import render, redirect, reverse
 from django.views.generic import View
 
 from magazine_main.models import Item, Borrowed
-from magazine_main.forms import EditItemForm, EditUserForm
+from magazine_main.forms import EditItemForm, EditUserForm, BorrowItemForm
 
 
 class ManageWarehouseView(LoginRequiredMixin, View):
     template_name = "magazine_main/manage_warehouse.html"
+    context = {}
 
     def get(self, request):
-        return render(request, self.template_name)
+        self.context["borrow_item_form"] = BorrowItemForm()
+        return render(request, self.template_name, context=self.context)
 
     def post(self, request):
         if 'action_add_user' in request.POST:
             try:
                 user = User.objects.create_user(username=request.POST['username'], password=request.POST['password'])
+                if 'is_admin' in request.POST:
+                    user.is_superuser = True
+                user.save()
+                messages.success(request, _('User successfully created'))
             except IntegrityError:
                 messages.error(request, _('User with provided username already exists'))
-            if 'is_admin' in request.POST:
-                user.is_superuser = True
-            user.save()
-            messages.success(request, _('User successfully created'))
+            return redirect('magazine_main:manage_warehouse')
         
         elif 'action_add_item' in request.POST:
-            print(request.POST)
             try:
                 Item.objects.create(name=request.POST['name'], amount=int(request.POST['amount']), amount_left=int(request.POST['amount']))
+                messages.success(request, _('Item successfully created'))
             except Exception:
                 messages.error(request, _('Something went wrong. Please try again'))
-            messages.success(request, _('Item successfully created'))
+            return redirect('magazine_main:manage_warehouse')
 
-            # TODO add action borrow
+        elif 'action_borrow_item' in request.POST:
+            try:
+                user_obj = get_object_or_404(User, id=request.POST['user'])
+                item_obj = get_object_or_404(Item, id=request.POST['item'])
+                Borrowed.objects.create(user=user_obj, item=item_obj, amount=int(request.POST['amount']))
+                item_obj.amount_left -= int(request.POST['amount'])
+                item_obj.save()
+                messages.success(request, _('Item successfully borrowed'))
+            except Exception:
+                messages.error(request, _('Something went wrong. Please try again'))
+            return redirect('magazine_main:manage_warehouse')
 
 class ManageWarehouseAction(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
@@ -60,7 +73,7 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     def get(self, request, pk, action):
         if 'item' in action:
             self.item_obj = get_object_or_404(Item, pk=pk)
-        if 'borrowed' in action:
+        elif 'borrowed' in action:
             self.user_borrowed_obj = get_object_or_404(Borrowed, pk=pk)
         else:
             self.user_obj = get_object_or_404(User, pk=pk)
@@ -77,11 +90,12 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
             return self.POST_ACTIONS[action](request)
         return redirect('magazine_main:manage_warehouse')        
 
-    def get_item(self, request):
+    def get_item(self, _):
         item_edit_form = EditItemForm(instance=self.item_obj)
+        print("item edit: ", item_edit_form, item_edit_form.as_p())
         return HttpResponse(item_edit_form.as_p())
 
-    def get_user(self, request):
+    def get_user(self, _):
         user_edit_form = EditUserForm(instance=self.user_obj)
         return HttpResponse(user_edit_form.as_p())
 
@@ -122,6 +136,8 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
 
     def delete_user_borrowed(self, request):
         try:
+            self.user_borrowed_obj.item.amount_left += self.user_borrowed_obj.amount
+            self.user_borrowed_obj.item.save()
             self.user_borrowed_obj.delete()
             messages.success(request, _('Borrowed item successfully deleted'))
         except Exception as e:
@@ -197,7 +213,6 @@ class BorrowedUserList(LoginRequiredMixin, BaseDatatableView):
     order_columns = ['item.name', 'amount', '']
 
     def get_initial_queryset(self):
-        print('Here ', self.kwargs.get('pk'))
         return Borrowed.objects.filter(user__id=self.kwargs.get('pk'))
 
     def render_buttons(self, id):

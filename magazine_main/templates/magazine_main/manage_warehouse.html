@@ -14,6 +14,10 @@
         <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addUserModal"> <i
                 class="fa-solid fa-user-plus"></i> {% trans 'Add new user' %} </button>
     </div>
+    <div class="col">
+        <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#borrowItemModal"> <i
+                class="fa-solid fa-folder-plus"></i> {% trans 'Borrow item' %} </button>
+    </div>
 </div>
 
 <div class="row p-3 align-items-center">
@@ -75,6 +79,32 @@
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin">
                         <label class="form-check-label" for="is_admin"> Admin user </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-dark"> {% trans 'Add' %} </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Borrow Item -->
+<div class="modal fade" id="borrowItemModal" tabindex="-1" aria-labelledby="borrowItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="borrowItemModalLabel"> {% trans 'Add new user' %} </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="borrowItemForm" action="{% url 'magazine_main:manage_warehouse' %}">
+                {% csrf_token %}
+                <input class="form-control" type="hidden" id="action_borrow_item" name="action_borrow_item"
+                    value="borrowItem" />
+                <div class="modal-body">
+                    <div class="mb-3 row">
+                        {{ borrow_item_form|crispy }}
                     </div>
                 </div>
                 <div class="modal-footer">

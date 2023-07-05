@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'crispy_forms',
+    'crispy_bootstrap4',
     'magazine_main',
     'magazine_auth',
     'django.contrib.admin',
@@ -127,6 +128,7 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CRISPY_TEMPLATE_PACK = 'bootstrap'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4" 
+CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 LOGOUT_REDIRECT_URL = '/auth/login'

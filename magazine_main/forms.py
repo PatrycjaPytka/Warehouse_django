@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import User
 
-from .models import Item
+from .models import Item, Borrowed
 
 
 class EditItemForm(forms.ModelForm):
@@ -25,3 +25,9 @@ class EditUserForm(forms.ModelForm):
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+
+class BorrowItemForm(forms.ModelForm):
+    class Meta:
+        model = Borrowed
+        fields = ['user', 'item', 'amount']

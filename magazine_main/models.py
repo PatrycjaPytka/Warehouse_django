@@ -9,6 +9,8 @@ class Item(models.Model):
     amount_left = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'{self.name} - {self.amount_left}'
 
 class Borrowed(models.Model):
     class Meta:
@@ -21,4 +23,3 @@ class Borrowed(models.Model):
 
     def __str__(self):
         return f'{self.item.name} - {self.amount}'
-

@@ -19,6 +19,22 @@ typing-extensions = {version = ">=4", markers = "python_version < \"3.11\""}
 tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
 
 [[package]]
+name = "crispy-bootstrap4"
+version = "2022.1"
+description = "Bootstrap4 template pack for django-crispy-forms"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "crispy-bootstrap4-2022.1.tar.gz", hash = "sha256:f18386c4d96180c1bb1212487d6e8f5a3dd1a9bb58d3032183973d4d130b55f9"},
+    {file = "crispy_bootstrap4-2022.1-py3-none-any.whl", hash = "sha256:5241ab1dc2188c95560aa786439bcbedec7416e6b0f5a52dded82380810367ec"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+django-crispy-forms = ">=1.14.0"
+
+[[package]]
 name = "django"
 version = "4.2.2"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
@@ -113,4 +129,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "a6fcce1c0c3d387da6676af9e7f8a03581509e53783d7212c34bdf4586b523bb"
+content-hash = "72b9b550bcd0b5bde6b3b6e52890b87c9c6ee7eeb33cc53bbd5d0225f10d6296"
