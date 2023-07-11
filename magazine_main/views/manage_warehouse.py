@@ -10,8 +10,8 @@ from django.utils.translation import gettext as _
 from django.shortcuts import render, redirect, reverse
 from django.views.generic import View
 
-from magazine_main.models import Item, Borrowed
-from magazine_main.forms import EditItemForm, EditUserForm, BorrowItemForm
+from magazine_main.models import Item, Borrowed, ItemType
+from magazine_main.forms import EditItemForm, EditUserForm, BorrowItemForm, AddItemForm, AddItemTypeForm,EditItemTypeForm
 
 
 class ManageWarehouseView(LoginRequiredMixin, View):
@@ -20,6 +20,8 @@ class ManageWarehouseView(LoginRequiredMixin, View):
 
     def get(self, request):
         self.context["borrow_item_form"] = BorrowItemForm()
+        self.context["add_item_form"] = AddItemForm()
+        self.context["add_item_type_form"] = AddItemTypeForm()
         return render(request, self.template_name, context=self.context)
 
     def post(self, request):
@@ -36,8 +38,17 @@ class ManageWarehouseView(LoginRequiredMixin, View):
         
         elif 'action_add_item' in request.POST:
             try:
-                Item.objects.create(name=request.POST['name'], amount=int(request.POST['amount']), amount_left=int(request.POST['amount']))
+                type_obj = get_object_or_404(ItemType, pk=request.POST['type'])
+                Item.objects.create(type=type_obj, name=request.POST['name'], serial_number=request.POST['serial_number'])
                 messages.success(request, _('Item successfully created'))
+            except Exception:
+                messages.error(request, _('Something went wrong. Please try again'))
+            return redirect('magazine_main:manage_warehouse')
+
+        elif 'action_add_item_type' in request.POST:
+            try:
+                ItemType.objects.create(name=request.POST['name'])
+                messages.success(request, _('Item type successfully created'))
             except Exception:
                 messages.error(request, _('Something went wrong. Please try again'))
             return redirect('magazine_main:manage_warehouse')
@@ -47,7 +58,7 @@ class ManageWarehouseView(LoginRequiredMixin, View):
                 user_obj = get_object_or_404(User, id=request.POST['user'])
                 item_obj = get_object_or_404(Item, id=request.POST['item'])
                 Borrowed.objects.create(user=user_obj, item=item_obj, amount=int(request.POST['amount']))
-                item_obj.amount_left -= int(request.POST['amount'])
+                item_obj.borrowed = True
                 item_obj.save()
                 messages.success(request, _('Item successfully borrowed'))
             except Exception:
@@ -57,12 +68,14 @@ class ManageWarehouseView(LoginRequiredMixin, View):
 class ManageWarehouseAction(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.GET_ACTIONS = {
+            'get_item_type': self.get_item_type,
             'get_item': self.get_item,
             'get_user': self.get_user,
             'delete_user_borrowed': self.delete_user_borrowed,
         }
 
         self.POST_ACTIONS = {
+            'edit_item_type': self.edit_item_type,
             'edit_item': self.edit_item,
             'edit_user': self.edit_user,
             'delete_item': self.delete_item,
@@ -71,7 +84,9 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk, action):
-        if 'item' in action:
+        if 'item_type' in action:
+            self.item_type_obj = get_object_or_404(ItemType, pk=pk)
+        elif 'item' in action:
             self.item_obj = get_object_or_404(Item, pk=pk)
         elif 'borrowed' in action:
             self.user_borrowed_obj = get_object_or_404(Borrowed, pk=pk)
@@ -84,20 +99,32 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     def post(self, request, pk, action):
         if 'user' in action:
             self.user_obj = get_object_or_404(User, pk=pk)
+        elif 'item_type' in action: 
+            self.item_type_obj = get_object_or_404(ItemType, pk=pk)
         else: 
             self.item_obj = get_object_or_404(Item, pk=pk)
         if action in self.POST_ACTIONS:
             return self.POST_ACTIONS[action](request)
         return redirect('magazine_main:manage_warehouse')        
 
+    def get_item_type(self, _):
+        item_type_edit_form = EditItemTypeForm(instance=self.item_type_obj)
+        return HttpResponse(item_type_edit_form.as_p())
+
     def get_item(self, _):
         item_edit_form = EditItemForm(instance=self.item_obj)
-        print("item edit: ", item_edit_form, item_edit_form.as_p())
         return HttpResponse(item_edit_form.as_p())
 
     def get_user(self, _):
         user_edit_form = EditUserForm(instance=self.user_obj)
         return HttpResponse(user_edit_form.as_p())
+
+    def edit_item_type(self, request):
+        form = EditItemTypeForm(request.POST, instance=self.item_type_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Item type successfully edited'))
+        return redirect('magazine_main:manage_warehouse')          
 
     def edit_item(self, request):
         form = EditItemForm(request.POST, instance=self.item_obj)
@@ -108,7 +135,6 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
     
     def edit_user(self, request):
         form = EditUserForm(request.POST, instance=self.user_obj)
-        print(form.is_valid())
         if form.is_valid():
             form.save()
             messages.success(request, _('User successfully edited'))
@@ -136,8 +162,6 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
 
     def delete_user_borrowed(self, request):
         try:
-            self.user_borrowed_obj.item.amount_left += self.user_borrowed_obj.amount
-            self.user_borrowed_obj.item.save()
             self.user_borrowed_obj.delete()
             messages.success(request, _('Borrowed item successfully deleted'))
         except Exception as e:
@@ -145,10 +169,35 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
         return redirect('magazine_main:manage_warehouse')
 
 
-class ItemsList(LoginRequiredMixin, BaseDatatableView):
-    model = Item
+class ItemTypesList(LoginRequiredMixin, BaseDatatableView):
+    model = ItemType
     columns = ['name', 'amount', 'amount_left', '']
     order_columns = ['name', 'amount', 'amount_left', '']
+
+    def get_initial_queryset(self):
+        return ItemType.objects.all().order_by('created_at')
+
+    def render_buttons(self, id):
+        buttons = f'''<button class="editItemTypeBtn btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editItemTypeModal" data-id="{id}"> Edit </button> 
+                      <button class="deleteItemTypeBtn btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteItemTypeModal" data-id="{id}"> Delete </button>'''
+        return buttons
+
+    def render_column(self, row, column):
+        if column == '':
+            return self.render_buttons(row.id)
+        return super(ItemTypesList, self).render_column(row, column)
+    
+    def filter_queryset(self, qs):
+        search = self.request.GET.get('search[value]', None)
+        if search:
+            qs = qs.filter(name__istartswith=search)
+        return qs        
+
+
+class ItemsList(LoginRequiredMixin, BaseDatatableView):
+    model = Item
+    columns = ['type.name', 'name', 'serial_number', '']
+    order_columns = ['type.name', 'name', 'serial_number', '']
 
     def get_initial_queryset(self):
         return Item.objects.all().order_by('created_at')
@@ -196,7 +245,6 @@ class UsersList(LoginRequiredMixin, BaseDatatableView):
             return self.render_buttons(row.id, row_type='actions')
         if column == 'borrowed_items':
             user = get_object_or_404(User, id=row.id)
-            print(user.borrowed_by.all().values_list('item__name', 'amount'))
             return self.render_buttons(row.id, 'borrowed_list')
         return super(UsersList, self).render_column(row, column)
     

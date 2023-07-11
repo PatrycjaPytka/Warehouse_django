@@ -3,14 +3,30 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-class Item(models.Model):
+class ItemType(models.Model):
     name = models.CharField(max_length=100)
-    amount = models.PositiveSmallIntegerField(default=0)
-    amount_left = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.name} - {self.amount_left}'
+        return f'{self.name} - {self.amount}'
+
+    @property
+    def amount(self):
+        return Item.objects.filter(type=self.id).count()
+
+    @property
+    def amount_left(self):
+        return Item.objects.filter(type=self.id, borrowed=False).count()
+
+class Item(models.Model):
+    type = models.ForeignKey(ItemType, related_name='item_type', on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
+    serial_number = models.CharField(max_length=300, unique=True)
+    borrowed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.type.name} - {self.name} - {self.serial_number}'
 
 class Borrowed(models.Model):
     class Meta:

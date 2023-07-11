@@ -7,6 +7,10 @@
 {% block content %}
 <div class="row align-items-center">
     <div class="col">
+        <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addItemTypeModal"> <i
+                class="fa-solid fa-folder-plus"></i> {% trans 'Add item type' %} </button>
+    </div>
+    <div class="col">
         <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#addItemModal"> <i
                 class="fa-solid fa-folder-plus"></i> {% trans 'Add item' %} </button>
     </div>
@@ -21,13 +25,29 @@
 </div>
 
 <div class="row p-3 align-items-center">
-    <h4> {% trans 'Items' %} </h4>
-    <table class="datatable-items table table-hover text-center">
+    <h4> {% trans 'Item Types' %} </h4>
+    <table class="datatable-item-types table table-hover text-center">
         <thead>
             <tr>
                 <th scope="col">{% trans "Name" %}</th>
                 <th scope="col">{% trans "Amount" %}</th>
                 <th scope="col">{% trans "Amount left" %}</th>
+                <th scope="col"> </th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<div class="row p-3 align-items-center">
+    <h4> {% trans 'Items' %} </h4>
+    <table class="datatable-items table table-hover text-center">
+        <thead>
+            <tr>
+                <th scope="col">{% trans "Type" %}</th>
+                <th scope="col">{% trans "Name" %}</th>
+                <th scope="col">{% trans "Serial number" %}</th>
                 <th scope="col"> </th>
             </tr>
         </thead>
@@ -116,12 +136,38 @@
     </div>
 </div>
 
+<!-- Modal Add New Item Type -->
+<div class="modal fade" id="addItemTypeModal" tabindex="-1" aria-labelledby="addItemTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id=addItemTypeModalLabel"> {% trans 'Add new item type' %} </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'magazine_main:manage_warehouse' %}">
+                {% csrf_token %}
+                <input class="form-control" type="hidden" id="action_add_item_type" name="action_add_item_type"
+                    value="addItemType" />
+                <div class="modal-body">
+                    <div class="mb-3 row">
+                        {{ add_item_type_form|crispy }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-dark"> {% trans 'Add' %} </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Add New Item -->
 <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addItemModalLabel"> {% trans 'Add new user' %} </h5>
+                <h5 class="modal-title" id="addItemModalLabel"> {% trans 'Add new item' %} </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{% url 'magazine_main:manage_warehouse' %}">
@@ -129,21 +175,38 @@
                 <input class="form-control" type="hidden" id="action_add_item" name="action_add_item" value="addItem" />
                 <div class="modal-body">
                     <div class="mb-3 row">
-                        <label for="name" class="col-sm-2 col-form-label"> {% trans 'Name' %}: </label>
-                        <div class="col-sm-10">
-                            <input class="form-control" type="text" id="name" name="name" required />
-                        </div>
-                    </div>
-                    <div class="mb-3 row">
-                        <label for="amount" class="col-sm-2 col-form-label"> {% trans 'Amount' %}: </label>
-                        <div class="col-sm-10">
-                            <input type="number" class="form-control" id="amount" name="amount" required />
-                        </div>
+                        {{ add_item_form|crispy }}
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-dark"> {% trans 'Add' %} </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Item Type -->
+<div class="modal fade" id="editItemTypeModal" tabindex="-1" aria-labelledby="editItemTypeModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editItemTypeModalLabel"> {% trans 'Edit item type' %} </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="editItemTypeForm" action="">
+                {% csrf_token %}
+                <input class="form-control" type="hidden" id="action_edit_item_type" name="action_edit_item_type"
+                    value="editItemType" />
+                <div class="modal-body">
+                    <div class="mb-3 row">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-dark"> {% trans 'Edit' %} </button>
                 </div>
             </form>
         </div>
@@ -281,6 +344,21 @@
 
 {% block scripts %}
 <script>
+    $(document).on('click', ".editItemTypeBtn", function (event) {
+        var pk = $(this).data('id')
+        console.log(pk)
+        $.ajax({
+            url: "/manage/" + pk + "/get_item_type/",
+            error: function (response, error) {
+                alert(error);
+            }
+        }).done(function (response) {
+            var modal = $("#editItemTypeModal .modal-body")
+            modal.html(response);
+            $('#editItemTypeForm').attr('action', "/manage/" + pk + "/edit_item_type/");
+        });
+    });
+
     $(document).on('click', ".editItemBtn", function (event) {
         var pk = $(this).data('id')
         console.log(pk)
@@ -293,7 +371,6 @@
             var modal = $("#editItemModal .modal-body")
             modal.html(response);
             $('#editItemForm').attr('action', "/manage/" + pk + "/edit_item/");
-
         });
     });
 
@@ -309,7 +386,6 @@
             var modal = $("#editUserModal .modal-body")
             modal.html(response);
             $('#editUserForm').attr('action', "/manage/" + pk + "/edit_user/");
-
         });
     });
 
@@ -323,7 +399,6 @@
             }
         }).done(function (response) {
             $('#deleteItemForm').attr('action', "/manage/" + pk + "/delete_item/");
-
         });
     });
 
@@ -336,11 +411,19 @@
             }
         }).done(function (response) {
             $('#deleteUserForm').attr('action', "/manage/" + pk + "/delete_user/");
-
         });
     });
 
     $(document).ready(function () {
+        var dt_item_table = $('.datatable-item-types').dataTable({
+            "bFilter": true,
+            "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
+            "iDisplayLength": 25,
+            "order": [[0, "desc"]],
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{% url 'magazine_main:item_types_list' %}"
+        });
         var dt_item_table = $('.datatable-items').dataTable({
             "bFilter": true,
             "aLengthMenu": [[25, 50, 100, 200], [25, 50, 100, 200]],
