@@ -162,6 +162,9 @@ class ManageWarehouseAction(LoginRequiredMixin, View):
 
     def delete_user_borrowed(self, request):
         try:
+            item_obj = self.user_borrowed_obj.item
+            item_obj.borrowed = False
+            item_obj.save()
             self.user_borrowed_obj.delete()
             messages.success(request, _('Borrowed item successfully deleted'))
         except Exception as e:
